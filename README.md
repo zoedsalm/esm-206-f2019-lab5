@@ -5,10 +5,11 @@ Prepared by Allison Horst
 
 ### Objectives:
 
-- Count categorical data by groups (`dplyr::count()`, `dplyr::tally()`, `dplyr::n()`)
-- Uncount a frequency table (`dplyr::uncount()`)
+- Count categorical data by groups with `dplyr::count()`, `dplyr::tally()`, & `dplyr::n()`
+- Uncount a frequency table with `dplyr::uncount()`
+- Explore distributions (including a quantile-quantile plot)
 - Parse dates with `lubridate`
-- Meet the `t.test()` function
+- Meet `t.test()`
 
 ### Data: SBC LTER lobster abundance
 
