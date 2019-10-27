@@ -210,9 +210,23 @@ Hooray!
 
 More information on tally/count: see descriptions and examples from [tidyverse.org](https://dplyr.tidyverse.org/reference/tally.html). 
 
-#### 7. One- and two-sample t-tests with `t.test()`
+#### 7. Confidence intervals, t-tests with `t.test()`
 
-So we found the mean and sd of lobster sizes (see object *lobster_summary*). But what if we ask the question: Is there a significant difference in lobster sizes between Naples Reef and Carpinteria Reef? 
+So we found the mean and sd of lobster sizes (see object *lobster_summary*). Let's say we want to find the confidence interval and/or standard error for lobsters at the different sites?
+
+We can use the `t.test()` function to find confidence intervals. First, I'll isolate the IVEE lobster lengths and find a 95% confidence interval. 
+```{r}
+ivee_lobsters <- lobster_tidy %>% 
+  filter(site == "IVEE") %>% 
+  pull(size_mm)
+
+t.test(ivee_lobsters) 
+
+# What does this 95% CI of [72.99, 74.17] mm mean? 
+```
+
+
+Now, what if we ask the question: Is there a significant difference in lobster sizes between Naples Reef and Carpinteria Reef? 
 
 We've already looked at the data (jitterplots, histograms, etc.) and it seems like a t-test would be an appropriate test. Ask here: why? Sample size, distribution, data type, etc....
 
