@@ -64,3 +64,105 @@ ggplot(data = lobster_tidy, aes(sample = size_mm)) +
 
 ```
 
+Use `lubridate` to parse dates and times:
+
+I'm going to add a new column with `mutate()`, that contains my date as an actual date
+
+```{r}
+lobster_date <- lobster_tidy %>% 
+  mutate(
+    date_new = lubridate::mdy(date)
+  )
+```
+
+Parse 'Date' column to get the different pieces (month, year) separated
+
+```{r}
+lobster_parse_date <- lobster_date %>% 
+  mutate(
+    obs_month = lubridate::month(date_new, label = TRUE),
+    obs_year = lubridate::year(date_new)
+  )
+```
+
+Count lobsters by different groupings...
+
+Let's say I want to count the number of lobsters by year and month
+
+```{r}
+lobster_ym <- lobster_parse_date %>% 
+  count(obs_year, obs_month)
+
+lobster_ym
+
+lobster_ysite <- lobster_parse_date %>% 
+  count(obs_year, site)
+
+lobster_ysite
+
+lobster_site <- lobster_parse_date %>% 
+  count(site)
+
+lobster_site
+
+# group_by + summarize + n() 
+lobster_summary <- lobster_parse_date %>% 
+  group_by(site) %>% 
+  summarize(
+    mean_size = mean(size_mm, na.rm = TRUE),
+    sd_size = sd(size_mm, na.rm = TRUE),
+    sample_n = n()
+  )
+
+```
+
+Confidence intervals and t-tests
+
+Use the `t.test()` function to find confidence intervals and perform t-tests
+
+```{r}
+
+ivee_lobsters <- lobster_tidy %>% 
+  filter(site == "IVEE") %>% 
+  pull(size_mm)
+
+t.test(ivee_lobsters)
+
+```
+
+Two-sample t-test: 
+Is there a significant difference in mean lobster lengths between Naples Reef and Mohawk Reef? 
+
+```{r}
+
+napl_sample <- lobster_tidy %>% 
+  filter(site == "NAPL") %>% 
+  pull(size_mm)
+
+mohk_sample <- lobster_tidy %>% 
+  filter(site == "MOHK") %>% 
+  pull(size_mm)
+
+mohk_napl_ttest <- t.test(napl_sample, mohk_sample)
+mohk_napl_ttest
+```
+
+Mean lobster size differed significantly between Mohawk and Naples reefs (t(`r mohk_napl_ttest$parameter`) = 19.849)...
+
+
+Maybe an easier way...
+```{r}
+lobster_2sample <- lobster_tidy %>% 
+  filter(site %in% c("NAPL","MOHK"))
+
+ttest_2 <- t.test(size_mm ~ site, data = lobster_2sample)
+ttest_2
+```
+
+Make a geom_tile heatmap
+
+```{r}
+ggplot(data = lobster_ysite, aes(x = obs_year, y = site)) +
+  geom_tile(aes(fill = n))
+```
+
