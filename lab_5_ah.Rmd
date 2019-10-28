@@ -9,3 +9,58 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Objectives:
+
+- Getting counts for different groups
+- Use {lubridate} to parse dates
+- Find confidence intervals & do t-tests with t.test()
+- Heatmap with geom_tile()
+
+```{r, include = FALSE}
+# Attach packages
+
+library(tidyverse)
+library(here)
+library(janitor)
+```
+
+```{r}
+# Import lobster data 
+
+lobster_abundance <- read_csv(here::here("data","lobster_abundance.csv"),
+                              na = "-99999") %>% 
+  clean_names()
+```
+
+Use the tidyr::uncount() function to expand a frequency variable
+```{r}
+lobster_tidy <- lobster_abundance %>% 
+  tidyr::uncount(lobster_count)
+```
+
+Yaya! Now each lobster has its own row. This is tidy format.
+
+Let's look at this a bunch of ways: 
+```{r}
+
+ggplot(data = lobster_tidy, aes(x = site, y = size_mm)) +
+  geom_jitter(aes(color = site),
+              width = 0.2,
+              alpha = 0.3)
+
+ggplot(data = lobster_tidy, aes(x = site, y = size_mm)) +
+  geom_violin(aes(color = site),
+              alpha = 0.3)
+
+ggplot(data = lobster_tidy, aes(x = size_mm)) +
+  geom_histogram(aes(fill = site)) +
+  facet_wrap(~site, scales = "free")
+
+ggplot(data = lobster_tidy, aes(sample = size_mm)) +
+  geom_qq(size = 0.5) +
+  facet_wrap(~site, scales = "free")
+
+
+
+```
+
