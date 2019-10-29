@@ -9,3 +9,237 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+#### Lab 5 objectives
+
+- Learn to parse dates with 'lubridate' package
+- Get counts of observations with count( )
+- Uncount( ) rows
+- One and two-sample t-test
+- Create a heatmap with geom_tile( )
+
+```{r, include = FALSE}
+
+# include = FALSE > code will not show up*
+
+# Read in data and attach packages
+
+library(tidyverse)
+library(here)
+library(janitor)
+
+lobster_abundance <- read_csv(here::here("data", "lobster_abundance.csv"),
+                              na = "-99999") %>% 
+  janitor::clean_names()
+
+```
+
+Use tidyr::uncount( ) to convert our lobster data from frequency format to case format
+
+```{r}
+
+# uncount() duplicates rows according to a weighting varaible (given by column lobster_count)
+## uncount() makes it easy to get from frequency back to raw data
+
+lobster_tidy <- lobster_abundance %>% 
+  tidyr::uncount(lobster_count)
+
+```
+
+#### Exploratory data visualization
+
+We're only going to consider 'site' as our variable of interest
+
+```{r}
+
+ggplot(lobster_tidy, aes(x = site, y = size_mm)) +
+  geom_jitter(aes(color = site),
+              alpha = 0.5,
+              width = 0.2)
+
+# width = reduces the width of the geom scatter
+
+# with a lot of observations, an easier way to look at distributions is using histograms and/or quantile quantile plots
+
+## HISTORGRAM
+ggplot(lobster_tidy, aes(x = size_mm)) +
+  geom_histogram(aes(fill = site),
+                 show.legend = FALSE) +
+  facet_wrap(~site, scales = "free")
+
+# [ sclaes = "free" ] makes it so that the sale of each individual facet_wrap graph is on it's own scale dependnet on its own values. This can look a lot better, but can also make really misleading data (can be bad)
+
+ggplot(lobster_tidy, aes(sample = size_mm)) +
+  geom_qq() +
+  facet_wrap(~site)
+
+```
+
+#### Convert the 'date' column to class 'Date'
+
+We'll use the 'lubridate' package to convert to Date format, and then to help us easily parse motn & year
+
+```{r}
+
+lobster_date <- lobster_tidy %>% 
+  mutate(
+    date_new = lubridate::mdy(date)
+  )
+
+```
+
+Now let's parse year and month using lubridate::month( ) and lubridate::year( )
+
+```{r}
+
+lobster_parse_date <- lobster_date %>% 
+  mutate(
+    obs_month = lubridate::month(date_new, label = TRUE),
+    obs_year = lubridate::year(date_new)
+  )
+
+```
+
+Now let's find counts of observed lobsters based on different hierarchical groupings:
+
+- Use the count( ) function - does a number of things all in one place
+  - groups things based on how you tell it to group things
+  - reports counts
+  - then ungroups data
+
+
+```{r}
+
+# First... Let's count lobsters by year and month:
+
+lobster_ym <- lobster_parse_date %>% 
+  dplyr::count(obs_year, obs_month)
+
+lobster_ym
+
+# Then... Count lobsters JUST by year:
+
+lobster_y <- lobster_parse_date %>% 
+  dplyr::count(obs_year)
+
+lobster_y
+
+# Finally... Count lobsters ONLY by site:
+
+lobster_site <- lobster_parse_date %>% 
+  dplyr::count(site)
+
+lobster_site
+
+```
+
+If we want to create a summary table that contains statistics OTHER than counts by group, it's easier to use group_by( ) + n( )
+
+- Using n() requires group by and summary
+- Using tally only requires group by (and assumes you want to summarize)
+
+```{r}
+
+lobster_summary <- lobster_parse_date %>% 
+  group_by(site) %>% 
+  summarize(
+    mean_size = mean(size_mm, na.rm = TRUE),
+    sd_size = sd(size_mm, na.rm = TRUE),
+    lobster_number = n()
+  )
+
+lobster_summary
+
+```
+
+#### Find confidence intervals
+
+If we calculate a 95% confidence interval based on a sample -- that means that if we took a bunch more samples, then in 95% of the intervals recorded, we would expect to find the population mean.
+
+Use t.test( ) function to find confidence intervals (for one sample) and perform t-tests to compare means of two samples (... this will be covered conceptually in lectures Week 6)
+
+```{r}
+
+ivee_lobster <- lobster_tidy %>% 
+  filter(site == "IVEE") %>% 
+  pull(size_mm)
+
+## To pull a single column from a df to have all values show up as a vector you can use pull( ) function.
+## This makes the df no longer a df, it is now a vector/matrix
+
+t.test(ivee_lobster)
+
+```
+
+#### Two-sample t-test to compare means
+
+If 2 samples are drawn from the same population - and they are perfect random samples- what would the difference in the means of the samples? It should be equal to zero.
+
+We want to ask: Is there a significant difference in lobster lengths at Naples and Mohawk reefs?
+
+We've done our ncessary exploratory analyses to determine that a 2-sample t-test for means comparison is appropriate.
+
+```{r}
+
+# Method 1:
+
+napl_sample <- lobster_tidy %>% 
+  filter(site == "NAPL") %>% 
+  pull(size_mm)
+
+mohk_sample <- lobster_tidy %>% 
+  filter(site == "MOHK") %>% 
+  pull(size_mm)
+
+mn_ttest <- t.test(mohk_sample, napl_sample)
+mn_ttest
+
+```
+
+There is a significant difference in lobster lenths between Naples and Mohawk Reef (t(df) = statistic, p< 0.001, alpha - 0.05).
+
+The statement of significance should be the least interesting thing about your data. 
+
+---
+
+Different approach: using "model format"
+
+```{r}
+
+lobster_mn <- lobster_tidy %>% 
+  filter(site %in% c("NAPL", "MOHK"))
+
+# ~ = as a function of/in reference to...
+
+mn_ttest2 <- t.test(size_mm ~ site, data = lobster_mn)
+
+mn_ttest2
+
+# You get the exact same results!! It is very unlikely that you would get variables this distinct if they were drawn from populations with the same mean.
+
+# Reporting values/results from your t-test...
+
+mn_ttest2$p.value
+mn_ttest2$statistic
+
+```
+
+#### Calling values from your code chunks
+I.e., referencing values/results from your analyses
+Aka, in-line referencing
+
+Here is the p-value: `r mn_ttest2$p.val`
+
+Here is the t-statistic: `r mn_ttest2$statistic`
+
+#### Now: a heatmap!
+
+```{r}
+
+lobster_ys <- lobster_parse_date %>% 
+  count(obs_year, site)
+
+ggplot(data = lobster_ys, aes(x = obs_year, y = site)) +
+  geom_tile(aes(fill = n))
+
+```
+
